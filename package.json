@@ -63,7 +63,10 @@
       "WeatherUseNightIcon",
       "SettingWidget0ID",
       "SettingWidget1ID",
-      "SettingWidget2ID"
+      "SettingWidget2ID",
+      "BgImageSize",
+      "BgImageOffset",
+      "BgImageData"
     ],
     "resources": {
       "media": [

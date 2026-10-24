@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include "bg_image.h"
 #include "clock_area.h"
 #include "messaging.h"
 #include "settings.h"
@@ -79,6 +80,9 @@ void redrawScreen() {
 static void main_window_load(Window *window) {
   window_set_background_color(window, settings.timeBgColor);
 
+  // the background image goes first, so it sits below everything else
+  BgImage_init(window);
+
   // create the sidebar
   Sidebar_init(window);
 
@@ -91,6 +95,7 @@ static void main_window_load(Window *window) {
 static void main_window_unload(Window *window) {
   ClockArea_deinit();
   Sidebar_deinit();
+  BgImage_deinit();
 }
 
 
