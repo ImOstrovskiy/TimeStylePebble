@@ -512,6 +512,18 @@
   </div>
 </div>
 
+<div id="bg_image_setting" class="hidden">
+  <label>Background Image</label>
+  <p class="help-block">Shown instead of the background color. The watch can't store it, so the phone re-sends it every time the watchface starts (a few seconds).</p>
+  <div class="form-group">
+    <canvas id="bg_image_preview" class="hidden" style="display: block; margin-bottom: 10px; border: 1px solid #ccc;"></canvas>
+    <input type="file" id="bg_image_file" accept="image/*">
+  </div>
+  <div class="form-group">
+    <button type="button" class="btn btn-default" id="bg_image_remove">Remove image</button>
+  </div>
+</div>
+
 <div class="modal fade" id="loadThemeModal" tabindex="-1" role="dialog" aria-labelledby="loadThemeModal">
   <div class="modal-dialog" role="document">
     <div class="modal-content">

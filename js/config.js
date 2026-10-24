@@ -446,6 +446,98 @@ function resetSettings() {
   loadPreviousSettings();
   updateSidebarPreview();
   setFormIsUnchanged();
+
+  bgImageData = undefined;
+  $('#bg_image_preview').addClass('hidden');
+  $('#bg_image_file').val('');
+}
+
+// background image: the phone passes the screen size only for watches with enough memory for it
+var bgImageW = parseInt(getQueryParam('bgw'), 10);
+var bgImageH = parseInt(getQueryParam('bgh'), 10);
+var bgImageData; // undefined = unchanged, '' = remove, otherwise one char per pixel
+var BG_IMAGE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+if(bgImageW && bgImageH) {
+  $('#bg_image_setting').removeClass('hidden');
+}
+
+$('#bg_image_file').on('change', function() {
+  var file = this.files[0];
+
+  if(!file) {
+    return;
+  }
+
+  var img = new Image();
+
+  img.onload = function() {
+    var canvas = document.getElementById('bg_image_preview');
+    canvas.width = bgImageW;
+    canvas.height = bgImageH;
+
+    // scale to cover the whole screen, cropping whatever sticks out
+    var ctx = canvas.getContext('2d');
+    var scale = Math.max(bgImageW / img.width, bgImageH / img.height);
+    var w = img.width * scale;
+    var h = img.height * scale;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, bgImageW, bgImageH);
+    ctx.drawImage(img, (bgImageW - w) / 2, (bgImageH - h) / 2, w, h);
+
+    bgImageData = ditherToPebbleColors(ctx, bgImageW, bgImageH);
+
+    $(canvas).removeClass('hidden');
+    URL.revokeObjectURL(img.src);
+    setFormHasChanges();
+  };
+
+  img.src = URL.createObjectURL(file);
+});
+
+$('#bg_image_remove').on('click', function() {
+  bgImageData = '';
+  $('#bg_image_preview').addClass('hidden');
+  $('#bg_image_file').val('');
+  setFormHasChanges();
+});
+
+// reduces the image to the 64 Pebble colors (2 bits per channel) with Floyd-Steinberg
+// dithering, draws the result back as a preview and returns one alphabet char per pixel
+function ditherToPebbleColors(ctx, w, h) {
+  var image = ctx.getImageData(0, 0, w, h);
+  var px = image.data;
+  var err = new Float32Array(w * h * 3);
+  var out = [];
+
+  for(var y = 0; y < h; y++) {
+    for(var x = 0; x < w; x++) {
+      var i = y * w + x;
+      var value = 0;
+
+      for(var c = 0; c < 3; c++) {
+        var old = px[i * 4 + c] + err[i * 3 + c];
+        var level = Math.max(0, Math.min(3, Math.round(old / 85)));
+        var e = old - level * 85;
+
+        px[i * 4 + c] = level * 85;
+        value = (value << 2) | level;
+
+        if(x + 1 < w) err[(i + 1) * 3 + c] += e * 7 / 16;
+        if(y + 1 < h) {
+          if(x > 0) err[(i + w - 1) * 3 + c] += e * 3 / 16;
+          err[(i + w) * 3 + c] += e * 5 / 16;
+          if(x + 1 < w) err[(i + w + 1) * 3 + c] += e / 16;
+        }
+      }
+
+      out.push(BG_IMAGE_ALPHABET.charAt(value));
+    }
+  }
+
+  ctx.putImageData(image, 0, 0);
+  return out.join('');
 }
 
 $('#close_button').on('click', cancelAndClose);
@@ -584,6 +676,11 @@ function sendSettingsToWatch() {
 
   // Save the configuration data to localStorage
   window.localStorage.setItem('savedSettings', JSON.stringify(config));
+
+  // added after saving, the image is too big to keep around in savedSettings
+  if(bgImageData !== undefined) {
+    config.bg_image = bgImageData;
+  }
 
   // Send the config data to the tracking service for SCIENCE
   // trackSettings(config);
