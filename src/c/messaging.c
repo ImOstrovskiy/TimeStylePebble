@@ -1,5 +1,4 @@
 #include <pebble.h>
-#include "bg_image.h"
 #include "weather.h"
 #include "settings.h"
 #include "messaging.h"
@@ -24,19 +23,14 @@ void messaging_init(void (*processed_callback)(void)) {
   app_message_register_outbox_failed(outbox_failed_callback);
   app_message_register_outbox_sent(outbox_sent_callback);
 
-  // Open AppMessage (inbox must fit a background image chunk, see BG_IMAGE_CHUNK in index.js)
-  app_message_open(PBL_IF_COLOR_ELSE(2048, 512), 8);
+  // Open AppMessage
+  app_message_open(512, 8);
 
   // APP_LOG(APP_LOG_LEVEL_DEBUG, "Watch messaging is started!");
   app_message_register_inbox_received(inbox_received_callback);
 }
 
 void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-  // image chunks are handled on their own, so settings aren't re-saved for every chunk
-  if(BgImage_handleMessage(iterator)) {
-    return;
-  }
-
   bool weatherDataUpdated = false;
 
   // does this message contain current weather conditions?

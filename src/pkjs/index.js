@@ -3,63 +3,7 @@ var weather = require('./weather');
 
 var CONFIG_VERSION = 9;
 // var BASE_CONFIG_URL = 'http://localhost:3001/';
-var BASE_CONFIG_URL = 'https://imostrovskiy.github.io/TimeStylePebble/';
-
-// watches with enough memory for a background image (it needs two full-screen
-// buffers: the image itself, plus the one fctx allocates to draw the time)
-var BG_IMAGE_SIZES = { emery: [200, 228] };
-
-// the config page encodes each pixel (2 bits per channel) as one char of this alphabet
-var BG_IMAGE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-
-// bytes per message, must fit the watch's AppMessage inbox (2048)
-var BG_IMAGE_CHUNK = 2000;
-
-// sends the stored background image to the watch (an empty one removes it)
-function sendBgImage(callback) {
-  var image = window.localStorage.getItem('bg_image') || '';
-  var offset = 0;
-  var retries = 0;
-
-  function sendChunk() {
-    var dict = {};
-    var end = Math.min(offset + BG_IMAGE_CHUNK, image.length);
-
-    if (offset === 0) {
-      dict.BgImageSize = image.length;
-    }
-
-    if (end > offset) {
-      dict.BgImageOffset = offset;
-      dict.BgImageData = [];
-
-      for (var i = offset; i < end; i++) {
-        // & 0x3F: an unexpected char becomes white instead of an invalid byte
-        dict.BgImageData.push(0xC0 | (BG_IMAGE_ALPHABET.indexOf(image.charAt(i)) & 0x3F));
-      }
-    }
-
-    Pebble.sendAppMessage(dict, function () {
-      offset = end;
-      retries = 0;
-
-      if (offset < image.length) {
-        sendChunk();
-      } else {
-        callback();
-      }
-    }, function () {
-      if (++retries < 3) {
-        sendChunk();
-      } else {
-        console.log('Failed to send background image!');
-        callback();
-      }
-    });
-  }
-
-  sendChunk();
-}
+var BASE_CONFIG_URL = 'http://freakified.github.io/TimeStylePebble/';
 
 // Listen for when the watchface is opened
 Pebble.addEventListener('ready',
@@ -73,18 +17,8 @@ Pebble.addEventListener('ready',
 
     console.log('the wdisabled value is: "' + window.localStorage.getItem('disable_weather') + '"');
     // if applicable, get the weather data
-    var updateWeather = function () {
-      if (window.localStorage.getItem('disable_weather') != 'yes') {
-        weather.updateWeather();
-      }
-    };
-
-    // the watch can't store the background image, so send it on every start
-    // (before the weather, so the two don't fight over the message channel)
-    if (window.localStorage.getItem('bg_image')) {
-      sendBgImage(updateWeather);
-    } else {
-      updateWeather();
+    if (window.localStorage.getItem('disable_weather') != 'yes') {
+      weather.updateWeather();
     }
   }
 );
@@ -118,8 +52,6 @@ Pebble.addEventListener('showConfiguration', function (e) {
     };
   }
 
-  var bgImageSize = BG_IMAGE_SIZES[watchInfo.platform];
-
   // map newer platforms to the closest equivalent config page
   // TODO: create real config pages for these platforms
   if (watchInfo.platform === 'flint') {
@@ -135,13 +67,7 @@ Pebble.addEventListener('showConfiguration', function (e) {
     };
   }
 
-  var url = BASE_CONFIG_URL + 'config_' + watchInfo.platform + '.html?appversion=' + CONFIG_VERSION;
-
-  if (bgImageSize) {
-    url += '&bgw=' + bgImageSize[0] + '&bgh=' + bgImageSize[1];
-  }
-
-  Pebble.openURL(url);
+  Pebble.openURL(BASE_CONFIG_URL + 'config_' + watchInfo.platform + '.html?appversion=' + CONFIG_VERSION)
 });
 
 Pebble.addEventListener('webviewclosed', function (e) {
@@ -330,13 +256,6 @@ Pebble.addEventListener('webviewclosed', function (e) {
 
     window.localStorage.setItem('disable_weather', disableWeather);
 
-    // background image: only present if it was changed ('' means removed)
-    var bgImageChanged = configData.bg_image !== undefined;
-
-    if (bgImageChanged) {
-      window.localStorage.setItem('bg_image', configData.bg_image);
-    }
-
     console.log('Preparing message: ', JSON.stringify(dict));
 
     // Send settings to Pebble watchapp
@@ -344,15 +263,7 @@ Pebble.addEventListener('webviewclosed', function (e) {
       console.log('Sent config data to Pebble, now trying to get weather');
 
       // after sending config data, force a weather refresh in case that changed
-      var updateWeather = function () {
-        weather.updateWeather(true);
-      };
-
-      if (bgImageChanged) {
-        sendBgImage(updateWeather);
-      } else {
-        updateWeather();
-      }
+      weather.updateWeather(true);
     }, function () {
       console.log('Failed to send config data!');
     });

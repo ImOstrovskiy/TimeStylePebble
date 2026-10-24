@@ -63,10 +63,7 @@
       "WeatherUseNightIcon",
       "SettingWidget0ID",
       "SettingWidget1ID",
-      "SettingWidget2ID",
-      "BgImageSize",
-      "BgImageOffset",
-      "BgImageData"
+      "SettingWidget2ID"
     ],
     "resources": {
       "media": [
@@ -114,6 +111,11 @@
             "flint",
             "gabbro"
           ]
+        },
+        {
+          "file": "data/bg_image.bin",
+          "name": "BG_IMAGE",
+          "type": "raw"
         },
         {
           "file": "data/WEATHER_GENERIC.pdc",
